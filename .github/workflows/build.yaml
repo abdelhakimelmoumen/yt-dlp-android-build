@@ -1,0 +1,36 @@
+name: Build yt-dlp for Android arm64
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract Python via Termux docker (recommended)
+        run: |
+          mkdir -p work/pkgroot
+          docker run --rm -v ${{ github.workspace }}/work:/work \
+            ghcr.io/termux/termux-docker:latest \
+            bash -c "
+              apt-get update -y &&
+              apt-get install -y -o Dpkg::Options::='--force-confnew' \
+                python openssl libffi sqlite &&
+              cp -r /data/data/com.termux/files/usr /work/pkgroot/usr
+            "
+
+      - name: Build yt-dlp.pyz
+        run: bash scripts/build_yt_dlp_pyz.sh
+
+      - name: Package self-extracting launcher
+        run: bash scripts/package_launcher.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yt-dlp-android-arm64
+          path: dist/yt-dlp

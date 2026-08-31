@@ -11,11 +11,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up QEMU (to run an aarch64 container on the x86_64 runner)
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
       - name: Extract Python via Termux docker (recommended)
         run: |
           mkdir -p work/pkgroot
-          docker run --rm -v ${{ github.workspace }}/work:/work \
-            ghcr.io/termux/termux-docker:latest \
+          docker run --rm --platform linux/arm64 \
+            --entrypoint /entrypoint_root.sh \
+            -v ${{ github.workspace }}/work:/work \
+            termux/termux-docker:aarch64 \
             bash -c "
               apt-get update -y &&
               apt-get install -y -o Dpkg::Options::='--force-confnew' \

@@ -16,19 +16,17 @@ jobs:
         with:
           platforms: arm64
 
-      - name: Extract Python via Termux docker (recommended)
+      - name: Install Python inside Termux container
+        run: |
+          docker run --platform linux/arm64 --name termuxbuild \
+            termux/termux-docker:aarch64 \
+            bash -c "apt-get update -y && apt-get install -y -o Dpkg::Options::='--force-confnew' python openssl libffi sqlite"
+
+      - name: Copy Python runtime out of the container
         run: |
           mkdir -p work/pkgroot
-          docker run --rm --platform linux/arm64 \
-            --entrypoint /entrypoint_root.sh \
-            -v ${{ github.workspace }}/work:/work \
-            termux/termux-docker:aarch64 \
-            bash -c "
-              apt-get update -y &&
-              apt-get install -y -o Dpkg::Options::='--force-confnew' \
-                python openssl libffi sqlite &&
-              cp -r /data/data/com.termux/files/usr /work/pkgroot/usr
-            "
+          docker cp termuxbuild:/data/data/com.termux/files/usr work/pkgroot/usr
+          docker rm termuxbuild
 
       - name: Build yt-dlp.pyz
         run: bash scripts/build_yt_dlp_pyz.sh
